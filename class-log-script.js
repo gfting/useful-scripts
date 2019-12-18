@@ -1,0 +1,1 @@
+document.getElementById("advancedSearchLink").click();
