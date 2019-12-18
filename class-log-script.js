@@ -139,31 +139,60 @@ async function driver() {
 			document.getElementById("searchClassSectionsResults")
 				.childElementCount === 1
 		) {
-			console.log("advance sleep");
+			console.log("sleeping for load");
 			await sleep(1000);
 		}
 		loadClasses();
 		await sleep(1000);
 	}
 
+	console.log("Finished getting info from YES!");
+
+	console.log("Loading instructor emails");
+	await loadEmails(classesObj);
+	convertJSON(classesObj);
+
 	console.log("Complete!");
 	console.log(JSON.stringify(classesObj));
-	convertJSON(classesObj);
 }
 
-async function loadEmails() {
+// loads the emails
+async function loadEmails(data) {
 	window.location =
 		"https://engineering.vanderbilt.edu/eecs/faculty-staff/index.php";
-	while (!document.readyState === "complete") {
-		await sleep(250);
+	console.log("new page loading");
+	await sleep(1000);
+	console.log("new page loaded");
+	while (document.getElementById("peoplelisting_filter") === undefined) {
+		console.log("loading");
+		await sleep(2000);
 	}
 	let searchBar = document.getElementById("peoplelisting_filter").children[0]
 		.children[0];
 	let peopleTable = document.getElementById("peoplelisting");
-	Object.keys(classesObj).forEach(key => {
+	Object.keys(data).forEach(async key => {
+		console.log(`processing entry ${data[key]}`);
 		// gets the instructor's last name
-		let lastName = classesObj[key].instructor.split(",")[0];
+		let lastName = data[key].instructor.split(",")[0];
+		console.log(lastName);
 		searchBar.value = lastName;
+		// clicks the page
+		peopleTable.getElementsByTagName("a")[0].click();
+		while (document.getElementById("sidebar__left") === undefined) {
+			await sleep(1000);
+		}
+		data[key].instructorEmail = document
+			.getElementById("sidebar__left")
+			.getElementsByTagName("a")[0].href;
+		console.log(
+			document
+				.getElementById("sidebar__left")
+				.getElementsByTagName("a")[0].href
+		);
+		window.history.back();
+		while (document.getElementById("peoplelisting_filter") === undefined) {
+			await sleep(2000);
+		}
 	});
 }
 
@@ -181,7 +210,7 @@ function convertJSON(data) {
 		for (let i = 0; i < numSections; ++i) {
 			let sectionInfo = obj[`section${i}`];
 			console.log(sectionInfo);
-			csv += `${obj.className},${obj.classNumber},${sectionInfo.days},${sectionInfo.time},${sectionInfo.location},"${sectionInfo.instructor}",\n`;
+			csv += `${obj.className},${obj.classNumber},${sectionInfo.days},${sectionInfo.time},${sectionInfo.location},"${sectionInfo.instructor}","${obj.instructorEmail}\n`;
 		}
 	});
 	// download it
